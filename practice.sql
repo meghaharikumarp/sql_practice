@@ -129,3 +129,17 @@ on emp1.employee_id+1=emp2.employee_id;
 SELECT first_name FROM employee_demographics
 UNION 
 SELECT first_name FROM employee_salary; 
+
+SELECT employee_id,first_name,last_name,'Old lady' AS label
+FROM employee_demographics
+WHERE age>40 AND gender='Female'
+UNION
+SELECT employee_id,first_name,last_name,'Old Man' AS label
+FROM employee_demographics
+WHERE age>40 AND gender='Male'
+UNION
+SELECT employee_id,first_name,last_name,'high payed' AS label
+FROM employee_salary 
+WHERE salary>70000
+order by employee_id;
+

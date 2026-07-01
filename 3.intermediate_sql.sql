@@ -20,8 +20,9 @@ INNER JOIN employee_salary
  
  #RIGHT JOIN
  
- SELECT * FROM employee_demographics
- dem RIGHT JOIN employee_salary sal
+ SELECT * FROM employee_demographics dem 
+ 
+ RIGHT JOIN employee_salary sal
  ON dem.employee_id=sal.employee_id;
  
  -- JUST AN EXPERIMENT
@@ -159,10 +160,121 @@ SELECT first_name,
 LOCATE('n',first_name)
 FROM employee_demographics ;
 
-# --------> CONCAT <-------#FOR JOINING TWO STRING
+# --------> CONCAT <-------#FOR COMBINING STRINGS
 
 SELECT first_name,
 last_name,
-CONCAT(first_name,ast_name)
+CONCAT(first_name,' ',last_name) AS concat_name
 FROM employee_demographics;
 
+-- *****************************************************************************
+# --------> CASE STATEMENT <-------#
+
+SELECT first_name,
+age,
+CASE 
+WHEN age<=30 THEN 'young'
+WHEN age BETWEEN 31 AND 40 THEN 'OLD'
+WHEN age>40 THEN 'TOO OLD'
+
+END AS staus
+FROM employee_demographics;
+
+-- pay increase and bonus
+-- < 50000
+-- > 50000
+-- finance = 10% BONUS
+
+SELECT first_name,
+last_name,salary,
+CASE
+ WHEN salary <50000 THEN salary + (salary * 0.05) # WHEN salary <50000 THEN salary * 1.05
+ WHEN salary >50000 THEN salary * 1.07 # WHEN salary >50000 THEN salary + (salary * 0.07)
+ 
+END AS salary_hike,
+CASE 
+WHEN dept_id = 6 THEN salary *.10
+END AS bonus
+FROM employee_salary;
+
+-- ***************************************************************************** --
+# --------> SUBQUERIES <-------#
+
+SELECT * FROM employee_demographics
+WHERE employee_id IN( 
+SELECT employee_id FROM 
+employee_salary
+WHERE dept_id=1
+);
+
+SELECT gender,AVG(age),MAX(age),
+MIN(age),COUNT(age)
+FROM employee_demographics
+GROUP BY gender;
+
+SELECT * FROM 
+(SELECT gender,AVG(age),MAX(age),
+MIN(age),COUNT(age)
+FROM employee_demographics
+GROUP BY gender) as agg_table;
+
+SELECT AVG(avg_age) FROM          #avg(`avg(age)`) backtick
+(SELECT gender,AVG(age) avg_age ,MAX(age) max_age,
+MIN(age) min_age,COUNT(age) cnt_age
+FROM employee_demographics
+GROUP BY gender) as agg_table
+GROUP BY gender;
+
+SELECT gender,AVG(salary) as avg_sal
+FROM employee_demographics as dem
+JOIN employee_salary as sal
+ON dem.employee_id=sal.employee_id
+GROUP BY gender;
+
+-- ***************************************************************************** --
+# --------> WINDOW FUNCTION <-------#
+
+SELECT gender,AVG(salary) OVER(PARTITION BY gender)
+FROM employee_demographics as dem
+JOIN employee_salary as sal
+ON dem.employee_id=sal.employee_id;     # when we done this using group by it is completely different answer
+
+ # when we done this using group by it is completely different answer
+ 
+SELECT dem.first_name,dem.last_name,gender,AVG(salary) as avg_sal
+FROM employee_demographics as dem
+JOIN employee_salary as sal
+ON dem.employee_id=sal.employee_id
+GROUP BY dem.first_name,dem.last_name,gender; #here we use group by so all the coulumn name provided in select statement also need to put on groupby 
+
+SELECT dem.first_name,dem.last_name,gender,salary,
+SUM(salary) OVER(PARTITION BY gender ORDER BY dem.employee_id) as rolling_total
+FROM employee_demographics as dem
+JOIN employee_salary as sal
+ON dem.employee_id=sal.employee_id; 
+
+SELECT dem.employee_id,dem.first_name,dem.last_name,gender,salary,
+ROW_NUMBER() OVER(PARTITION BY gender ORDER BY salary DESC) AS ROWNUMBER
+FROM employee_demographics as dem
+JOIN employee_salary as sal
+ON dem.employee_id=sal.employee_id; # HERE IT WORKS LIKE ID IT IS PUT HERE BASED ON THE GENDER IN THE ORDER OH HIGHEST SALARY
+									# TO LOWEST AFTER THE FEMALE IT RESET AND START FROM 1
+                                    
+SELECT dem.employee_id,dem.first_name,dem.last_name,gender,salary,
+ROW_NUMBER() OVER(PARTITION BY gender ORDER BY salary DESC) AS ROWNUMBER,
+RANK() OVER(PARTITION BY gender ORDER BY salary DESC) AS RANK_NUM
+FROM employee_demographics as dem
+JOIN employee_salary as sal
+ON dem.employee_id=sal.employee_id;# HERE RANK IS USED TO RANK THE EMPLOYEE BASED ON THE SALARY BASIS OF GENDER AND 
+                                   # THE TWO PERSON HAVE SAME SALARY THE THEY HAVE SAME RANK TOO AND THE NEXT NUMBER 
+								   # WILL BE NOT NUMERICALLY IT IS IN POSITIONALLY LOOK AT THE THE COLUMN THAT HAVE VALUE 7 AT LAST ROW
+                                   
+SELECT dem.employee_id,dem.first_name,dem.last_name,gender,salary,
+ROW_NUMBER() OVER(PARTITION BY gender ORDER BY salary DESC) AS ROWNUMBER,
+RANK() OVER(PARTITION BY gender ORDER BY salary DESC) AS RANK_NUM,
+DENSE_RANK() OVER(PARTITION BY gender ORDER BY salary DESC) AS DENSE_RANK_NUM # HERE IT WILL SOLVE THE PROBLEM IN RANK
+FROM employee_demographics as dem
+JOIN employee_salary as sal
+ON dem.employee_id=sal.employee_id;                                 
+                 
+                 
